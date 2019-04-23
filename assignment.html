@@ -1,0 +1,167 @@
+                     
+<html>
+	<head>
+	  <script src="https://cdn.anychart.com/releases/v8/js/anychart-base.min.js?hcode=be5162d915534272a57d0bb781d27f2b"></script>
+	  <script src="https://cdn.anychart.com/releases/v8/js/anychart-ui.min.js?hcode=be5162d915534272a57d0bb781d27f2b"></script>
+	  <script src="https://cdn.anychart.com/releases/v8/js/anychart-exports.min.js?hcode=be5162d915534272a57d0bb781d27f2b"></script>
+	  <script src="https://cdn.anychart.com/releases/v8/js/anychart-stock.min.js?hcode=be5162d915534272a57d0bb781d27f2b"></script>
+	  <script src="https://cdn.anychart.com/releases/v8/js/anychart-annotations.min.js?hcode=be5162d915534272a57d0bb781d27f2b"></script>
+	  <script src="https://cdn.anychart.com/csv-data/orcl-daily-short.js"></script>
+	  <script src="https://code.jquery.com/jquery-latest.min.js"></script>
+	  <script src="https://cdn.anychart.com/csv-data/empty_data(2009-2010).js"></script>
+	  <link href="https://cdn.anychart.com/playground-css/annotated/annotated-title.css" type="text/css" rel="stylesheet">
+	  <link href="https://cdn.anychart.com/releases/v8/css/anychart-ui.min.css?hcode=be5162d915534272a57d0bb781d27f2b" type="text/css" rel="stylesheet">
+	  <link href="https://cdn.anychart.com/releases/v8/fonts/css/anychart-font.min.css?hcode=be5162d915534272a57d0bb781d27f2b" type="text/css" rel="stylesheet">
+	  <style type="text/css">
+				html,
+				body,
+				#container {
+					width: 100%;
+					height: 100%;
+					margin: 0;
+					padding: 0;
+				}
+	</style>
+	</head>
+	<body>		
+	  <div id="container">
+		<div class="container-title"></div>
+	  </div>
+	<script>
+		anychart.onDocumentReady(function () {
+			// The data that have been used for this sample can be taken from the CDN
+			// https://cdn.anychart.com/csv-data/orcl-daily-short.js
+			// https://cdn.anychart.com/csv-data/empty_data(2009-2010).js
+
+			// create data tables on loaded data
+			var orclDataTable = anychart.data.table();
+			var emptyDataTable = anychart.data.table();
+			var arr = [];
+			jQuery.get("https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=MSFT&interval=5min&apikey=demo",function(data){
+				var d = data["Time Series (5min)"];
+				// console.log(d);
+				
+				$.each(d,function(ind,val){
+					var date = ind.split(" ");
+					arr.push([date[0],parseFloat(val["1. open"]),parseFloat(val["2. high"]),parseFloat(val["3. low"]),parseFloat(val["4. close"]),parseFloat(val["5. volume"])]);
+				});
+				orclDataTable.addData(get_orcl_daily_short_data());
+				orclDataTable.addData(arr); 
+				
+				emptyDataTable.addData(arr);
+				// console.log(arr);
+			});
+			
+			// console.log(get_orcl_daily_short_data());
+
+			
+			
+
+			// create stock chart
+			var chart = anychart.stock(arr);
+
+			// set chart title
+			chart.title('Assignment');
+
+			//set chart padding
+			chart.padding([15, 50, 57, 50]);
+
+
+			// create plot on the chart
+			var plot = chart.plot();
+			
+
+			var controller = plot.annotations();
+
+
+			// var horizontalLine1 = controller.horizontalLine({
+			// 	valueAnchor: 120,
+			// 	hovered: {stroke: "2 #ff0000"},
+			// 	selected: {stroke: "4 #ff0000"}
+			// });
+
+			// create the second Horizontal Line annotation
+			var horizontalLine2 = controller.horizontalLine();
+
+			// set the position of the second annotation
+			horizontalLine2.valueAnchor(120.01);
+			
+			// configure the visual settings of the second annotation
+			horizontalLine2.normal().stroke("#006600", 1, "10 2");
+			horizontalLine2.hovered().stroke("#00b300", 2, "10 2");
+			horizontalLine2.selected().stroke("#00b300", 4, "10 2");
+
+			// grid settings
+			plot.yGrid(true)
+				.xGrid(true)
+				.xMinorGrid(true)
+				.yMinorGrid(true);
+
+			// format legend items
+			plot.legend().itemsFormatter(function (items) {
+				items.splice(1, 1);
+				// return items array
+				return items;
+			});
+
+			var ORCL = plot.candlestick(orclDataTable.mapAs({
+				'open': 1,
+				'high': 2,
+				'low': 3,
+				'close': 4,
+				'volume': 5
+			}));
+			ORCL.name('ORCL');
+			ORCL.legendItem().iconType('rising-falling');
+			ORCL.tooltip().format(function () {
+				if (this.open === 0 && isNaN(this.close)) {
+					return '<span>' + this.seriesName + '</span><br/>' +
+						'<span style="color: #ccc">Open</span>: ' + 'undefined' +
+						'<br/><span style="color: #ccc">High</span>: ' + 'undefined' +
+						'<br/><span style="color: #ccc">Low</span>: ' + 'undefined' +
+						'<br/><span style="color: #ccc">Close</span>: ' + 'undefined';
+				} else {
+					return '<span>' + this.seriesName + '</span><br/>' +
+						'<span style="color: #ccc">Open</span>: ' + this.open +
+						'<br/><span style="color: #ccc">High</span>: ' + this.high +
+						'<br/><span style="color: #ccc">Low</span>: ' + this.low +
+						'<br/><span style="color: #ccc">Close</span>: ' + this.close;
+				}
+			});
+
+			// create plot empty series with mapped data
+			plot.line()
+				.data(emptyDataTable.mapAs({
+					'value': 1
+				}))
+				.stroke('none')
+				.tooltip(false);
+
+			// create scroller series with mapped data
+			chart.scroller().candlestick(orclDataTable.mapAs({
+				'open': 1,
+				'high': 2,
+				'low': 3,
+				'close': 4,
+			}));
+			chart.tooltip().useHtml(true);
+			// set container id for the chart
+			chart.container('container');
+			// initiate chart drawing
+			chart.draw();
+
+			// create range picker
+			var rangePicker = anychart.ui.rangePicker();
+			// init range picker
+			rangePicker.render(chart);
+
+			// create range selector
+			var rangeSelector = anychart.ui.rangeSelector();
+			// init range selector
+			rangeSelector.render(chart);
+		});
+	</script>
+	</body>
+	</html>
+	
+					
